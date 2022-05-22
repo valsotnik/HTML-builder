@@ -27,8 +27,25 @@ async function buildHTML() {
   await fsPromises.writeFile(path.join(finalProjectPath, 'index.html'), innerPageContent);
 }
 
+//======= Make bundle styles from origin css===========
+const stylesDir = path.join(__dirname, 'styles');
 
-// ===== Copy assets dir
+async function stylesBundle () {
+  let styles = await fsPromises.readdir(stylesDir, { withFileTypes: true });
+  const writeStream = fs.createWriteStream(path.join(__dirname, 'project-dist', 'style.css'));
+  for (let styleFile of styles) {
+    let filePath = path.join(stylesDir, styleFile.name);
+    if (path.extname(styleFile.name) === '.css' && styleFile.isFile()) {
+      const bundleFile = [];
+      const readStream = fs.createReadStream(filePath, 'utf-8');
+      readStream.on('data', chunk => bundleFile.push(chunk));
+      readStream.on('end', () => bundleFile.forEach(file => writeStream.write(`${file}\n`)));
+    }
+  }
+}
+
+
+// ===== Copy assets dir===================
 const originAssets = path.join(__dirname,  'assets');
 const duplicateAssets = path.join(__dirname, 'project-dist' ,'assets');
 
@@ -56,30 +73,15 @@ async function copyAssetsDir (inputPath, outputPath) {
 
 }
 
-//======= Make bundle styles from origin css
-const stylesDir = path.join(__dirname, 'styles');
 
-async function stylesBundle () {
-  let styles = await fs.promises.readdir(stylesDir, { withFileTypes: true });
-  const writeStream = fs.createWriteStream(path.join(__dirname, 'project-dist', 'style.css'));
-  for (let styleFile of styles) {
-    let filePath = path.join(stylesDir, styleFile.name);
-    if (path.extname(styleFile.name) === '.css' && styleFile.isFile()) {
-      const bundleFile = [];
-      const readStream = fs.createReadStream(filePath, 'utf-8');
-      readStream.on('data', chunk => bundleFile.push(chunk));
-      readStream.on('end', () => bundleFile.forEach(file => writeStream.write(`${file}\n`)));
-    }
-  }
-}
 
-//=======Make output html file
+//=======Make output project============
 
 (async function builProject() {
 
   await buildHTML();
   await stylesBundle();
-  await copyAssetsDir(originAssets, duplicateAssets);
+  // await copyAssetsDir(originAssets, duplicateAssets);
 })();
 
 
